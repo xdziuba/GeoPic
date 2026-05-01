@@ -11,9 +11,12 @@
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="src/css/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous" defer></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js" defer></script>
     <script type="module" src="src/js/app.js" defer></script>
@@ -29,6 +32,21 @@
         <div class="col mb-5">
           <h1>GeoPic 🌍📸</h1>
           <p class="lead">Udostępniaj zdjęcia z lokalizacją GPS!</p>
+        </div>
+
+        <!-- Login -->
+        <div class="col d-flex justify-content-end mb-3">
+          <button v-if="!user" class="btn btn-outline-primary btn mb-5" @click="login">
+            Zaloguj przez Google
+          </button>
+
+          <div v-else class="d-flex align-items-center gap-2">
+            <img :src="user.photoURL" width="32" height="32" style="border-radius:50%">
+            <span>{{ user.displayName }}</span>
+            <button class="btn btn-outline-danger btn-sm" @click="logout">
+              Wyloguj
+            </button>
+          </div>
         </div>
       </div>
 
@@ -48,11 +66,48 @@
       <div class="card p-3 mb-4">
           <h2 class="mb-3">Feed:</h2>
       
-        <div v-for="post in posts" class="card mb-3">
-          <img :src="post.imageUrl" class="card-img-top">
+        <div v-for="(post, index) in posts" :key="index" class="card mb-3">
+
+          <div :id="'carousel-' + index" class="carousel slide" data-bs-interval="false">
+            
+            <div class="carousel-inner">
+
+              <!-- SLIDE 1 - photo -->
+              <div class="carousel-item active">
+                <img :src="post.imageUrl" class="d-block w-100" style="height: 500px;" alt="Zdjęcie">
+                <div class="carousel-caption d-none d-md-block">
+                  <h5>{{ post.locationName }}</h5>
+                  <p>{{ formatDate(post.createdAt) }}</p>
+                </div>
+              </div>
+
+              <!-- SLIDE 2 - map -->
+              <div class="carousel-item">
+                <div :id="'map-' + index" style="height: 500px; width: 100%;"></div>
+              </div>
+
+            </div>
+
+            <!-- Controls -->
+            <button class="carousel-control-prev" type="button"
+              :data-bs-target="'#carousel-' + index"
+              data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+
+            <button class="carousel-control-next" type="button"
+              :data-bs-target="'#carousel-' + index"
+              data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+
+          </div>
+
           <div class="card-body">
-            <p>📍 {{ post.locationName }}</p>
-            <p>📅 {{ formatDate(post.createdAt) }}</p>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <img :src="post.userPhoto" width="30" height="30" style="border-radius:50%">
+              <strong>{{ post.userName }}</strong>
+            </div>
             <p>💬 {{ post.description }}</p>
           </div>
         </div>
