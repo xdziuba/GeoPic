@@ -19,6 +19,12 @@ createApp({
       this.selectedFile = e.target.files[0];
     },
 
+    formatDate(timestamp) {
+      if (!timestamp) return "";
+      const date = timestamp.toDate();
+      return date.toLocaleString("pl-PL");
+    },
+
     async addPost() {
       if (!this.selectedFile) return;
 
@@ -34,14 +40,21 @@ createApp({
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        const location = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
+        //const location = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+        );
+        const data = await res.json();
+
+        const locationName = data.display_name;
 
         await db.collection("posts").add({
           imageUrl: imageUrl,
           description: this.description,
           lat: lat,
           lng: lng,
-          createdAt: new Date()
+          createdAt: new Date(),
+          locationName: locationName
         });
 
         alert("Dodano posta 🔥");
