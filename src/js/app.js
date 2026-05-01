@@ -9,9 +9,9 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
-        description: '',
-        posts: [],
-        selectedFile: null
+      description: '',
+      posts: [],
+      selectedFile: null
     };
   },
   methods: {
@@ -20,22 +20,49 @@ createApp({
     },
 
     async addPost() {
-        if (!this.selectedFile) return;
+      if (!this.selectedFile) return;
 
-        const imageUrl = URL.createObjectURL(this.selectedFile);
+      const file = this.selectedFile;
+      const fileName = Date.now() + "_" + file.name;
 
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const location = `Lat: ${pos.coords.latitude.toFixed(3)}, Lng: ${pos.coords.longitude.toFixed(3)}`;
+      const storageRef = storage.ref("images/" + fileName);
+      await storageRef.put(file);
 
-            this.posts.unshift({
-            imageUrl: imageUrl,
-            description: this.description,
-            location: location
-            });
-            
-            this.description = "";
-            this.selectedFile = null;
+      const imageUrl = await storageRef.getDownloadURL();
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        const location = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
+
+        await db.collection("posts").add({
+          imageUrl: imageUrl,
+          description: this.description,
+          lat: lat,
+          lng: lng,
+          createdAt: new Date()
         });
+
+        alert("Dodano posta 🔥");
+
+        this.description = "";
+        this.selectedFile = null;
+
+        this.fetchPosts();
+      });
+    },
+
+    async fetchPosts() {
+      const snapshot = await db
+        .collection("posts")
+        .orderBy("createdAt", "desc")
+        .get();
+
+      this.posts = snapshot.docs.map(doc => doc.data());
     }
+  },
+  mounted() {
+    this.fetchPosts();
   }
 }).mount("#app");

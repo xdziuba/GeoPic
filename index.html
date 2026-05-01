@@ -51,7 +51,7 @@
         <div v-for="post in posts" class="card mb-3">
           <img :src="post.imageUrl" class="card-img-top">
           <div class="card-body">
-            <p>📍 {{ post.location }}</p>
+            <p>📍 Lat: {{ post.lat.toFixed(3) }}, Lng: {{ post.lng.toFixed(3) }}</p>
             <p>💬 {{ post.description }}</p>
           </div>
         </div>
