@@ -14,7 +14,8 @@ const app = createApp({
       user: null,
       description: '',
       posts: [],
-      selectedFile: null
+      selectedFile: null,
+      alert: null
     };
   },
   methods: {
@@ -30,9 +31,15 @@ const app = createApp({
 
     async addPost() {
       if (!this.user) {
-        alert("Zaloguj się najpierw!");
+        this.alert = {
+          type: "danger",
+          message: "Zaloguj się najpierw!"
+        };
+
+        setTimeout(() => this.alert = null, 3000);
         return;
-}
+      }
+
       if (!this.selectedFile) return;
 
       const file = this.selectedFile;
@@ -67,7 +74,11 @@ const app = createApp({
           locationName: locationName
         });
 
-        alert("Dodano posta 🔥");
+        this.alert = {
+          type: "success",
+          message: "Dodano posta 🔥"
+        };
+        setTimeout(() => this.alert = null, 3000);
 
         this.description = "";
         this.selectedFile = null;
@@ -82,7 +93,14 @@ const app = createApp({
         .orderBy("createdAt", "desc")
         .get();
 
-      this.posts = snapshot.docs.map(doc => doc.data());
+      this.posts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        likesCount: 0,
+        likedByUser: false
+      }));
+
+      this.posts.forEach(post => this.loadLikes(post));
 
       this.$nextTick(() => {
         const carousels = document.querySelectorAll('.carousel');
@@ -90,6 +108,49 @@ const app = createApp({
           new bootstrap.Carousel(el);
         });
       });
+    },
+
+    async loadLikes(post) {
+      const snapshot = await db
+        .collection("posts")
+        .doc(post.id)
+        .collection("likes")
+        .get();
+
+      post.likesCount = snapshot.size;
+
+      if (this.user) {
+        post.likedByUser = snapshot.docs.some(doc => doc.id === this.user.uid);
+      }
+    },
+
+    async toggleLike(post) {
+      if (!this.user) {
+        this.alert = {
+          type: "danger",
+          message: "Musisz się zalogować, żeby lajkować!"
+        };
+        setTimeout(() => this.alert = null, 3000);
+        return;
+      }
+
+      const likeRef = db
+        .collection("posts")
+        .doc(post.id)
+        .collection("likes")
+        .doc(this.user.uid);
+
+      if (post.likedByUser) {
+        await likeRef.delete();
+        post.likesCount--;
+      } else {
+        await likeRef.set({
+          userId: this.user.uid
+        });
+        post.likesCount++;
+      }
+
+      post.likedByUser = !post.likedByUser;
     },
 
     login() {
@@ -105,6 +166,7 @@ const app = createApp({
   mounted() {
     auth.onAuthStateChanged((user) => {
       this.user = user;
+      this.posts.forEach(post => this.loadLikes(post));
     });
 
     this.fetchPosts();

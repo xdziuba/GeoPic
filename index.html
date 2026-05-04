@@ -37,7 +37,8 @@
         <!-- Login -->
         <div class="col d-flex justify-content-end mb-3">
           <button v-if="!user" class="btn btn-outline-primary btn mb-5" @click="login">
-            Zaloguj przez Google
+            Zaloguj przez Google aby </br>
+            dodawać, komentować i lajkować zdjęcia!
           </button>
 
           <div v-else class="d-flex align-items-center gap-2">
@@ -52,6 +53,24 @@
 
       <div class="alert alert-info" role="alert">
         Aplikacja jest w fazie rozwoju, więc mogą wystąpić błędy. Jeśli masz pomysł na funkcję lub znalazłeś błąd, zgłoś to na <a href="https://github.com/xdziuba/geopic" target="_blank">stronie projektu</a>.
+      </div>
+
+      <!-- Alert box -->
+      <div v-if="alert"
+          class="position-fixed top-0 start-50 translate-middle-x p-3"
+          style="z-index: 9999; width: 100%; max-width: 500px;">
+
+        <div class="alert alert-dismissible fade show"
+            :class="'alert-' + alert.type">
+
+          {{ alert.message }}
+
+          <button type="button"
+                  class="btn-close"
+                  @click="alert = null">
+          </button>
+        </div>
+
       </div>
 
       <!-- New post form -->
@@ -100,15 +119,29 @@
               data-bs-slide="next">
               <span class="carousel-control-next-icon"></span>
             </button>
-
           </div>
 
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <img :src="post.userPhoto" width="30" height="30" style="border-radius:50%">
-              <strong>{{ post.userName }}</strong>
+          <!-- Post content -->
+          <div class="card-body row">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <img :src="post.userPhoto" width="30" height="30" style="border-radius:50%">
+                <strong>{{ post.userName }}</strong>
+              </div>
+              <p>💬 {{ post.description }}</p>
             </div>
-            <p>💬 {{ post.description }}</p>
+
+            <div class="col d-flex justify-content-end mb-3">
+              <div class="d-flex align-items-center gap-2 mt-2">
+                <button class="btn btn-sm"
+                        :class="post.likedByUser ? 'btn-danger' : 'btn-outline-danger'"
+                        @click="toggleLike(post)">
+                  ❤️
+                </button>
+                <span>{{ post.likesCount }} polubień</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
