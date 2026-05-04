@@ -192,5 +192,15 @@
         </div>
       </div>
     </div>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("src/js/service-worker.js")
+            .then(() => console.log("SW started!"))
+            .catch(err => console.error("SW error:", err));
+        });
+      }
+    </script>
   </body>
 </html>
