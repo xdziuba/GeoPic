@@ -79,6 +79,9 @@ const app = createApp({
           message: "Dodano posta 🔥"
         };
         setTimeout(() => this.alert = null, 3000);
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
+        }
 
         this.description = "";
         this.selectedFile = null;
@@ -131,6 +134,9 @@ const app = createApp({
           message: "Musisz się zalogować, żeby lajkować!"
         };
         setTimeout(() => this.alert = null, 3000);
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
         return;
       }
 
@@ -143,11 +149,17 @@ const app = createApp({
       if (post.likedByUser) {
         await likeRef.delete();
         post.likesCount--;
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
       } else {
         await likeRef.set({
           userId: this.user.uid
         });
         post.likesCount++;
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
       }
 
       post.likedByUser = !post.likedByUser;
