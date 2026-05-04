@@ -2,6 +2,10 @@
   animation: slideDown 0.3s ease;
 }
 
+input::placeholder {
+  font-size: 0.9rem;
+}
+
 @keyframes slideDown {
   from {
     transform: translateY(-20px);

@@ -15,7 +15,9 @@ const app = createApp({
       description: '',
       posts: [],
       selectedFile: null,
-      alert: null
+      alert: null,
+      email: '',
+      password: ''
     };
   },
   methods: {
@@ -37,6 +39,9 @@ const app = createApp({
         };
 
         setTimeout(() => this.alert = null, 3000);
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
         return;
       }
 
@@ -68,7 +73,7 @@ const app = createApp({
           lat: lat,
           lng: lng,
           userId: this.user.uid,
-          userName: this.user.displayName,
+          userName: this.user.displayName || this.user.email,
           userPhoto: this.user.photoURL,
           createdAt: new Date(),
           locationName: locationName
@@ -100,10 +105,15 @@ const app = createApp({
         id: doc.id,
         ...doc.data(),
         likesCount: 0,
-        likedByUser: false
+        likedByUser: false,
+        comments: [],
+        newComment: ""
       }));
 
-      this.posts.forEach(post => this.loadLikes(post));
+      this.posts.forEach(post => {
+        this.loadLikes(post);
+        this.loadComments(post);
+      });
 
       this.$nextTick(() => {
         const carousels = document.querySelectorAll('.carousel');
@@ -111,6 +121,48 @@ const app = createApp({
           new bootstrap.Carousel(el);
         });
       });
+    },
+
+    async loadComments(post) {
+      const snapshot = await db
+        .collection("posts")
+        .doc(post.id)
+        .collection("comments")
+        .orderBy("createdAt", "desc")
+        .get();
+
+      post.comments = snapshot.docs.map(doc => doc.data());
+    },
+
+    async addComment(post) {
+      if (!this.user) {
+        this.alert = {
+          type: "danger",
+          message: "Zaloguj się, aby komentować!"
+        };
+        setTimeout(() => this.alert = null, 3000);
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        return;
+      }
+
+      if (!post.newComment.trim()) return;
+
+      await db
+        .collection("posts")
+        .doc(post.id)
+        .collection("comments")
+        .add({
+          text: post.newComment,
+          userName: this.user.displayName || this.user.email,
+          userPhoto: this.user.photoURL,
+          createdAt: new Date()
+        });
+
+      post.newComment = "";
+
+      this.loadComments(post);
     },
 
     async loadLikes(post) {
@@ -172,6 +224,50 @@ const app = createApp({
 
     logout() {
       auth.signOut();
+    },
+
+    async register() {
+      try {
+        await auth.createUserWithEmailAndPassword(this.email, this.password);
+
+        this.alert = {
+          type: "success",
+          message: "Zarejestrowano!"
+        };
+
+      } catch (e) {
+        this.alert = {
+          type: "danger",
+          message: e.message
+        };
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+      }
+
+      setTimeout(() => this.alert = null, 3000);
+    },
+
+    async loginEmail() {
+      try {
+        await auth.signInWithEmailAndPassword(this.email, this.password);
+
+        this.alert = {
+          type: "success",
+          message: "Zalogowano!"
+        };
+
+      } catch (e) {
+        this.alert = {
+          type: "danger",
+          message: "Błąd logowania"
+        };
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+      }
+
+      setTimeout(() => this.alert = null, 3000);
     }
 
   },

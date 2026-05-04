@@ -35,18 +35,38 @@
         </div>
 
         <!-- Login -->
-        <div class="col d-flex justify-content-end mb-3">
-          <button v-if="!user" class="btn btn-outline-primary btn mb-5" @click="login">
-            Zaloguj przez Google aby </br>
-            dodawać, komentować i lajkować zdjęcia!
-          </button>
+        <div class="card col p-3 mb-3">
+          <h5>Logowanie</h5>
+          <input type="email"
+                class="form-control mb-2"
+                placeholder="Email"
+                v-model="email">
 
-          <div v-else class="d-flex align-items-center gap-2">
-            <img :src="user.photoURL" width="32" height="32" style="border-radius:50%">
-            <span>{{ user.displayName }}</span>
-            <button class="btn btn-outline-danger btn-sm" @click="logout">
-              Wyloguj
+          <input type="password"
+                class="form-control mb-2"
+                placeholder="Hasło"
+                v-model="password">
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" @click="loginEmail">
+              Zaloguj
             </button>
+            <button class="btn btn-outline-secondary" @click="register">
+              Rejestracja
+            </button>
+
+            <div class="ms-auto">
+              <button v-if="!user" class="btn btn-outline-primary btn" @click="login">
+                Zaloguj przez Google
+              </button>
+              <div v-else class="d-flex align-items-center gap-2">
+                <img :src="user.photoURL || 'assets/android-chrome-192x192.png'" width="32" height="32" style="border-radius:50%">
+                <span>{{ user.displayName || user.email }}</span>
+                <button class="btn btn-outline-danger btn-sm" @click="logout">
+                  Wyloguj
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -125,8 +145,8 @@
           <div class="card-body row">
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-2">
-                <img :src="post.userPhoto" width="30" height="30" style="border-radius:50%">
-                <strong>{{ post.userName }}</strong>
+                <img :src="post.userPhoto || 'assets/android-chrome-192x192.png'" width="30" height="30" style="border-radius:50%">
+                <h5>{{ post.userName }}</h5>
               </div>
               <p>💬 {{ post.description }}</p>
             </div>
@@ -142,6 +162,32 @@
               </div>
             </div>
 
+            <div class="mt-3">
+              <!-- Comments -->
+              <hr>
+              <h3 class="lead mb-4">Komentarze:</h3>
+              <div v-for="comment in post.comments" class="mb-2 d-flex gap-2">
+                <img :src="comment.userPhoto || 'assets/android-chrome-192x192.png'" width="24" height="24" style="border-radius:50%">
+                <div>
+                  <strong>{{ comment.userName }}</strong>
+                  <div clas="lead">{{ comment.text }}</div>
+                </div>
+              </div>
+
+              <!-- Add Comment -->
+              <div class="d-flex gap-2 mt-2">
+                <input type="text"
+                      class="form-control form-control-sm"
+                      placeholder="Dodaj komentarz..."
+                      v-model="post.newComment">
+
+                <button class="btn btn-sm btn-primary"
+                        @click="addComment(post)">
+                  Wyślij
+                </button>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
