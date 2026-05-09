@@ -264,6 +264,57 @@ a:hover { color: var(--grad-bot); }
   color: var(--text);
 }
 
+.gp-preview {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #000;
+  animation: zoomIn 0.35s ease;
+}
+
+.gp-preview img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  display: block;
+}
+
+.gp-preview-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.gp-preview-remove:hover {
+  background: var(--danger);
+  transform: scale(1.1);
+}
+
+.gp-preview-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  color: white;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Posts feed */
 .gp-feed {
   display: flex;

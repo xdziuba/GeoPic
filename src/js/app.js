@@ -15,6 +15,7 @@ const app = createApp({
       description: '',
       posts: [],
       selectedFile: null,
+      previewUrl: null,
       toasts: [],
       toastId: 0,
       email: '',
@@ -24,7 +25,19 @@ const app = createApp({
   },
   methods: {
     handleFile(e) {
-      this.selectedFile = e.target.files[0];
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+
+      this.selectedFile = file;
+      this.previewUrl = URL.createObjectURL(file);
+    },
+
+    clearPreview() {
+      if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+      this.previewUrl = null;
+      this.selectedFile = null;
     },
 
     formatDate(timestamp) {
@@ -118,7 +131,7 @@ const app = createApp({
         this.buzz([100, 50, 100]);
 
         this.description = "";
-        this.selectedFile = null;
+        this.clearPreview();
         this.uploading = false;
 
         this.fetchPosts();

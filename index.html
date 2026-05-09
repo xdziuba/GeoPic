@@ -59,11 +59,18 @@
 
         <div class="gp-card gp-new-post">
           <h2>Nowy post</h2>
-          <label class="gp-file-label">
+
+          <label v-if="!previewUrl" class="gp-file-label">
             <input type="file" @change="handleFile" accept="image/*" capture="environment" hidden/>
-            <span v-if="!selectedFile">📷 Wybierz zdjęcie</span>
-            <span v-else>✅ {{ selectedFile.name }}</span>
+            <span>📷 Wybierz zdjęcie</span>
           </label>
+
+          <div v-else class="gp-preview">
+            <img :src="previewUrl" alt="Podgląd">
+            <button type="button" class="gp-preview-remove" @click="clearPreview">×</button>
+            <div class="gp-preview-name">{{ selectedFile.name }}</div>
+          </div>
+
           <input type="text" v-model="description" class="gp-input" placeholder="Napisz coś o tym miejscu...">
           <button class="btn-gradient w-100" @click="addPost">
             <span v-if="!uploading">Dodaj zdjęcie</span>
