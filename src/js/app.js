@@ -20,7 +20,8 @@ const app = createApp({
       toastId: 0,
       email: '',
       password: '',
-      uploading: false
+      uploading: false,
+      isMobile: false
     };
   },
   methods: {
@@ -300,6 +301,20 @@ const app = createApp({
 
   },
   mounted() {
+    const checkMobile = () => {
+      const coarse = window.matchMedia('(pointer: coarse)').matches;
+      const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      return coarse || touch || ua;
+    };
+
+    this.isMobile = checkMobile();
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    mq.addEventListener('change', () => {
+      this.isMobile = checkMobile();
+    });
+
     auth.onAuthStateChanged((user) => {
       this.user = user;
       this.posts.forEach(post => this.loadLikes(post));
