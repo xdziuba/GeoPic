@@ -62,7 +62,7 @@
 
           <label v-if="!previewUrl" class="gp-file-label">
             <input type="file" @change="handleFile" accept="image/*" capture="environment" hidden/>
-            <span>📷 Wybierz zdjęcie</span>
+            <span>📷 {{ isMobile ? 'Zrób zdjęcie' : 'Wybierz zdjęcie' }}</span>
           </label>
 
           <div v-else class="gp-preview">
