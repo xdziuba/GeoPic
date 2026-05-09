@@ -9,9 +9,9 @@
 
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-    <link rel="stylesheet" href="src/css/style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="src/css/style.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -23,174 +23,209 @@
   </head>
 
   <body>
-    <div id="app" class="container py-4">
-      <div class="row">
-        <div class="col-auto">
-          <img src="assets/android-chrome-512x512.png" alt="GeoPic Logo" width="64" height="64">
-        </div>
+    <div id="app">
 
-        <div class="col mb-5">
-          <h1>GeoPic 🌍📸</h1>
-          <p class="lead">Udostępniaj zdjęcia z lokalizacją GPS!</p>
-        </div>
+      <nav class="gp-navbar">
+        <div class="gp-navbar-inner">
+          <div class="gp-brand">
+            <img src="assets/android-chrome-512x512.png" alt="GeoPic Logo" width="40" height="40">
+            <span class="gp-logo-text">GeoPic</span>
+          </div>
 
-        <!-- Login -->
-        <div class="card col p-3 mb-3">
-          <h5>Logowanie</h5>
-          <input type="email"
-                class="form-control mb-2"
-                placeholder="Email"
-                v-model="email">
-
-          <input type="password"
-                class="form-control mb-2"
-                placeholder="Hasło"
-                v-model="password">
-
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary" @click="loginEmail">
-              Zaloguj
-            </button>
-            <button class="btn btn-outline-secondary" @click="register">
-              Rejestracja
-            </button>
-
-            <div class="ms-auto">
-              <button v-if="!user" class="btn btn-outline-primary btn" @click="login">
-                Zaloguj przez Google
+          <div class="gp-auth-area">
+            <div v-if="!user" class="gp-auth-buttons">
+              <button class="btn-ghost" data-bs-toggle="modal" data-bs-target="#loginModal">
+                Zaloguj się
               </button>
-              <div v-else class="d-flex align-items-center gap-2">
-                <img :src="user.photoURL || 'assets/android-chrome-192x192.png'" width="32" height="32" style="border-radius:50%">
-                <span>{{ user.displayName || user.email }}</span>
-                <button class="btn btn-outline-danger btn-sm" @click="logout">
-                  Wyloguj
-                </button>
-              </div>
+              <button class="btn-gradient" data-bs-toggle="modal" data-bs-target="#registerModal">
+                Zarejestruj się
+              </button>
+            </div>
+
+            <div v-else class="gp-user-info">
+              <img :src="user.photoURL || 'assets/android-chrome-192x192.png'" class="gp-avatar">
+              <span class="gp-username">{{ user.displayName || user.email }}</span>
+              <button class="btn-ghost btn-small" @click="logout">Wyloguj się</button>
             </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <div class="alert alert-info" role="alert">
-        Aplikacja jest w fazie rozwoju, więc mogą wystąpić błędy. Jeśli masz pomysł na funkcję lub znalazłeś błąd, zgłoś to na <a href="https://github.com/xdziuba/geopic" target="_blank">stronie projektu</a>.
-      </div>
+      <main class="gp-container">
 
-      <!-- Alert box -->
-      <div v-if="alert"
-          class="position-fixed top-0 start-50 translate-middle-x p-3"
-          style="z-index: 9999; width: 100%; max-width: 500px;">
+        <div class="gp-info-banner">
+          Aplikacja jest w fazie rozwoju, więc mogą wystąpić błędy. Jeśli masz pomysł na funkcję lub znalazłeś błąd, zgłoś to na <a href="https://github.com/xdziuba/geopic" target="_blank">stronie projektu</a>.
+        </div>
 
-        <div class="alert alert-dismissible fade show"
-            :class="'alert-' + alert.type">
-
-          {{ alert.message }}
-
-          <button type="button"
-                  class="btn-close"
-                  @click="alert = null">
+        <div class="gp-card gp-new-post">
+          <h2>Nowy post</h2>
+          <label class="gp-file-label">
+            <input type="file" @change="handleFile" accept="image/*" capture="environment" hidden/>
+            <span v-if="!selectedFile">📷 Wybierz zdjęcie</span>
+            <span v-else>✅ {{ selectedFile.name }}</span>
+          </label>
+          <input type="text" v-model="description" class="gp-input" placeholder="Napisz coś o tym miejscu...">
+          <button class="btn-gradient w-100" @click="addPost">
+            <span v-if="!uploading">Dodaj zdjęcie</span>
+            <span v-else>Wysyłam...</span>
           </button>
         </div>
 
-      </div>
+        <div class="gp-feed">
+          <div v-for="(post, index) in posts" :key="post.id" class="gp-post">
 
-      <!-- New post form -->
-      <div class="card p-3 mb-4">
-        <h2 class="mb-3">Nowy post:</h2>
-        <input type="file" @change="handleFile" class="form-control mb-2" accept="image/*" capture="environment"/>
-        <input type="text" v-model="description" class="form-control mb-2" placeholder="Opis...">
-        <button class="btn btn-primary" @click="addPost">Dodaj zdjęcie</button>
-      </div>
+            <div class="gp-post-header">
+              <img :src="post.userPhoto || 'assets/android-chrome-192x192.png'" class="gp-avatar">
+              <div class="gp-post-user">
+                <div class="gp-post-username">{{ post.userName }}</div>
+                <div class="gp-post-location">📍 {{ post.locationName }}</div>
+              </div>
+            </div>
 
-      <!-- Posts -->
-      <div class="card p-3 mb-4">
-          <h2 class="mb-3">Feed:</h2>
-      
-        <div v-for="(post, index) in posts" :key="index" class="card mb-3">
+            <div :id="'carousel-' + index" class="carousel slide gp-carousel" data-bs-interval="false">
+              <div class="carousel-inner">
+                <div class="carousel-item active">
+                  <div class="gp-image-wrap">
+                    <img :src="post.imageUrl" class="gp-post-image" alt="Zdjęcie">
+                  </div>
+                </div>
 
-          <div :id="'carousel-' + index" class="carousel slide" data-bs-interval="false">
-            
-            <div class="carousel-inner">
-
-              <!-- SLIDE 1 - photo -->
-              <div class="carousel-item active">
-                <img :src="post.imageUrl" class="d-block w-100" style="height: 500px;" alt="Zdjęcie">
-                <div class="carousel-caption d-none d-md-block">
-                  <h5>{{ post.locationName }}</h5>
-                  <p>{{ formatDate(post.createdAt) }}</p>
+                <div class="carousel-item">
+                  <div :id="'map-' + index" class="gp-post-map"></div>
                 </div>
               </div>
 
-              <!-- SLIDE 2 - map -->
-              <div class="carousel-item">
-                <div :id="'map-' + index" style="height: 500px; width: 100%;"></div>
-              </div>
+              <button class="carousel-control-prev" type="button"
+                :data-bs-target="'#carousel-' + index"
+                data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+              </button>
 
-            </div>
+              <button class="carousel-control-next" type="button"
+                :data-bs-target="'#carousel-' + index"
+                data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+              </button>
 
-            <!-- Controls -->
-            <button class="carousel-control-prev" type="button"
-              :data-bs-target="'#carousel-' + index"
-              data-bs-slide="prev">
-              <span class="carousel-control-prev-icon"></span>
-            </button>
-
-            <button class="carousel-control-next" type="button"
-              :data-bs-target="'#carousel-' + index"
-              data-bs-slide="next">
-              <span class="carousel-control-next-icon"></span>
-            </button>
-          </div>
-
-          <!-- Post content -->
-          <div class="card-body row">
-            <div class="col-md-6">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <img :src="post.userPhoto || 'assets/android-chrome-192x192.png'" width="30" height="30" style="border-radius:50%">
-                <h5>{{ post.userName }}</h5>
-              </div>
-              <p>💬 {{ post.description }}</p>
-            </div>
-
-            <div class="col d-flex justify-content-end mb-3">
-              <div class="d-flex align-items-center gap-2 mt-2">
-                <button class="btn btn-sm"
-                        :class="post.likedByUser ? 'btn-danger' : 'btn-outline-danger'"
-                        @click="toggleLike(post)">
-                  ❤️
-                </button>
-                <span>{{ post.likesCount }} polubień</span>
+              <div class="gp-carousel-dots">
+                <span class="gp-dot active"></span>
+                <span class="gp-dot"></span>
               </div>
             </div>
 
-            <div class="mt-3">
-              <!-- Comments -->
-              <hr>
-              <h3 class="lead mb-4">Komentarze:</h3>
-              <div v-for="comment in post.comments" class="mb-2 d-flex gap-2">
-                <img :src="comment.userPhoto || 'assets/android-chrome-192x192.png'" width="24" height="24" style="border-radius:50%">
-                <div>
+            <div class="gp-post-actions">
+              <button class="gp-like-btn"
+                      :class="{ liked: post.likedByUser }"
+                      @click="toggleLike(post)">
+                <span class="gp-heart">{{ post.likedByUser ? '❤️' : '🤍' }}</span>
+              </button>
+              <span class="gp-likes-count">{{ post.likesCount }} polubień</span>
+              <span class="gp-post-date">{{ formatDate(post.createdAt) }}</span>
+            </div>
+
+            <div class="gp-post-body">
+              <p class="gp-description">
+                <strong>{{ post.userName }}</strong> {{ post.description }}
+              </p>
+            </div>
+
+            <div class="gp-comments">
+              <div v-for="comment in post.comments" class="gp-comment">
+                <img :src="comment.userPhoto || 'assets/android-chrome-192x192.png'" class="gp-avatar gp-avatar-sm">
+                <div class="gp-comment-body">
                   <strong>{{ comment.userName }}</strong>
-                  <div clas="lead">{{ comment.text }}</div>
+                  <span>{{ comment.text }}</span>
                 </div>
               </div>
 
-              <!-- Add Comment -->
-              <div class="d-flex gap-2 mt-2">
+              <div class="gp-add-comment">
                 <input type="text"
-                      class="form-control form-control-sm"
+                      class="gp-input gp-input-sm"
                       placeholder="Dodaj komentarz..."
-                      v-model="post.newComment">
-
-                <button class="btn btn-sm btn-primary"
-                        @click="addComment(post)">
-                  Wyślij
-                </button>
+                      v-model="post.newComment"
+                      @keyup.enter="addComment(post)">
+                <button class="btn-text" @click="addComment(post)">Wyślij</button>
               </div>
+            </div>
+          </div>
+        </div>
+      </main>
 
+      <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content gp-modal">
+            <button type="button" class="gp-modal-close" data-bs-dismiss="modal">×</button>
+            <div class="gp-modal-body">
+              <div class="gp-modal-logo">
+                <img src="assets/android-chrome-512x512.png" width="60" height="60">
+              </div>
+              <h2 class="gp-modal-title">Witaj z powrotem</h2>
+              <p class="gp-modal-subtitle">Zaloguj się, żeby udostępniać zdjęcia</p>
+
+              <input type="email" class="gp-input" placeholder="Email" v-model="email">
+              <input type="password" class="gp-input" placeholder="Hasło" v-model="password">
+
+              <button class="btn-gradient w-100" @click="loginEmail">Zaloguj się</button>
+
+              <div class="gp-divider"><span>lub</span></div>
+
+              <button class="btn-google w-100" @click="login">
+                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C41.5 35.4 44 30.1 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                Zaloguj przez Google
+              </button>
+
+              <p class="gp-modal-footer">
+                Nie masz konta?
+                <a href="#" @click.prevent="switchToRegister">Zarejestruj się</a>
+              </p>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content gp-modal">
+            <button type="button" class="gp-modal-close" data-bs-dismiss="modal">×</button>
+            <div class="gp-modal-body">
+              <div class="gp-modal-logo">
+                <img src="assets/android-chrome-512x512.png" width="60" height="60">
+              </div>
+              <h2 class="gp-modal-title">Dołącz do GeoPic</h2>
+              <p class="gp-modal-subtitle">Załóż konto i podziel się swoim światem</p>
+
+              <input type="email" class="gp-input" placeholder="Email" v-model="email">
+              <input type="password" class="gp-input" placeholder="Hasło (min. 6 znaków)" v-model="password">
+
+              <button class="btn-gradient w-100" @click="register">Zarejestruj się</button>
+
+              <div class="gp-divider"><span>lub</span></div>
+
+              <button class="btn-google w-100" @click="login">
+                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C41.5 35.4 44 30.1 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                Zarejestruj przez Google
+              </button>
+
+              <p class="gp-modal-footer">
+                Masz już konto?
+                <a href="#" @click.prevent="switchToLogin">Zaloguj się</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gp-toast-container">
+        <div v-for="t in toasts" :key="t.id" class="gp-toast" :class="'gp-toast-' + t.type">
+          <span class="gp-toast-icon">
+            <span v-if="t.type === 'success'">✅</span>
+            <span v-else-if="t.type === 'danger'">⚠️</span>
+            <span v-else>ℹ️</span>
+          </span>
+          <span class="gp-toast-msg">{{ t.message }}</span>
+        </div>
+      </div>
+
     </div>
 
     <script>
