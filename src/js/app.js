@@ -15,9 +15,11 @@ const app = createApp({
       description: '',
       posts: [],
       selectedFile: null,
-      alert: null,
+      toasts: [],
+      toastId: 0,
       email: '',
-      password: ''
+      password: '',
+      uploading: false
     };
   },
   methods: {
@@ -31,21 +33,55 @@ const app = createApp({
       return date.toLocaleString("pl-PL");
     },
 
+    showToast(type, message) {
+      const id = this.toastId++;
+      this.toasts.push({ id, type, message });
+      setTimeout(() => {
+        this.toasts = this.toasts.filter(t => t.id !== id);
+      }, 3500);
+    },
+
+    buzz(pattern) {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    },
+
+    closeModal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const m = bootstrap.Modal.getInstance(el);
+      if (m) m.hide();
+    },
+
+    openModal(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const m = bootstrap.Modal.getOrCreateInstance(el);
+      m.show();
+    },
+
+    switchToRegister() {
+      this.closeModal("loginModal");
+      setTimeout(() => this.openModal("registerModal"), 300);
+    },
+
+    switchToLogin() {
+      this.closeModal("registerModal");
+      setTimeout(() => this.openModal("loginModal"), 300);
+    },
+
     async addPost() {
       if (!this.user) {
-        this.alert = {
-          type: "danger",
-          message: "Zaloguj się najpierw!"
-        };
-
-        setTimeout(() => this.alert = null, 3000);
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
+        this.showToast("danger", "Zaloguj się najpierw!");
+        this.buzz(200);
         return;
       }
 
-      if (!this.selectedFile) return;
+      if (!this.selectedFile) {
+        this.showToast("danger", "Wybierz zdjęcie!");
+        return;
+      }
+
+      this.uploading = true;
 
       const file = this.selectedFile;
       const fileName = Date.now() + "_" + file.name;
@@ -59,7 +95,6 @@ const app = createApp({
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        //const location = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
         );
@@ -79,19 +114,17 @@ const app = createApp({
           locationName: locationName
         });
 
-        this.alert = {
-          type: "success",
-          message: "Dodano posta 🔥"
-        };
-        setTimeout(() => this.alert = null, 3000);
-        if (navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]);
-        }
+        this.showToast("success", "Dodano posta 🔥");
+        this.buzz([100, 50, 100]);
 
         this.description = "";
         this.selectedFile = null;
+        this.uploading = false;
 
         this.fetchPosts();
+      }, () => {
+        this.uploading = false;
+        this.showToast("danger", "Nie udało się pobrać lokalizacji");
       });
     },
 
@@ -136,14 +169,8 @@ const app = createApp({
 
     async addComment(post) {
       if (!this.user) {
-        this.alert = {
-          type: "danger",
-          message: "Zaloguj się, aby komentować!"
-        };
-        setTimeout(() => this.alert = null, 3000);
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
+        this.showToast("danger", "Zaloguj się, aby komentować!");
+        this.buzz(200);
         return;
       }
 
@@ -181,14 +208,8 @@ const app = createApp({
 
     async toggleLike(post) {
       if (!this.user) {
-        this.alert = {
-          type: "danger",
-          message: "Musisz się zalogować, żeby lajkować!"
-        };
-        setTimeout(() => this.alert = null, 3000);
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
+        this.showToast("danger", "Musisz się zalogować, żeby lajkować!");
+        this.buzz(200);
         return;
       }
 
@@ -201,73 +222,67 @@ const app = createApp({
       if (post.likedByUser) {
         await likeRef.delete();
         post.likesCount--;
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
+        this.buzz(50);
       } else {
         await likeRef.set({
           userId: this.user.uid
         });
         post.likesCount++;
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
+        this.buzz(50);
       }
 
       post.likedByUser = !post.likedByUser;
     },
 
-    login() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider);
+    async login() {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        this.closeModal("loginModal");
+        this.closeModal("registerModal");
+        this.showToast("success", "Zalogowano przez Google!");
+      } catch (e) {
+        this.showToast("danger", "Logowanie anulowane");
+      }
     },
 
     logout() {
       auth.signOut();
+      this.showToast("info", "Wylogowano");
     },
 
     async register() {
+      if (!this.email || !this.password) {
+        this.showToast("danger", "Podaj email i hasło");
+        return;
+      }
       try {
         await auth.createUserWithEmailAndPassword(this.email, this.password);
-
-        this.alert = {
-          type: "success",
-          message: "Zarejestrowano!"
-        };
-
+        this.closeModal("registerModal");
+        this.email = "";
+        this.password = "";
+        this.showToast("success", "Konto utworzone!");
       } catch (e) {
-        this.alert = {
-          type: "danger",
-          message: e.message
-        };
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
+        this.showToast("danger", e.message);
+        this.buzz(200);
       }
-
-      setTimeout(() => this.alert = null, 3000);
     },
 
     async loginEmail() {
+      if (!this.email || !this.password) {
+        this.showToast("danger", "Podaj email i hasło");
+        return;
+      }
       try {
         await auth.signInWithEmailAndPassword(this.email, this.password);
-
-        this.alert = {
-          type: "success",
-          message: "Zalogowano!"
-        };
-
+        this.closeModal("loginModal");
+        this.email = "";
+        this.password = "";
+        this.showToast("success", "Zalogowano!");
       } catch (e) {
-        this.alert = {
-          type: "danger",
-          message: "Błąd logowania"
-        };
-        if (navigator.vibrate) {
-          navigator.vibrate(200);
-        }
+        this.showToast("danger", "Błąd logowania");
+        this.buzz(200);
       }
-
-      setTimeout(() => this.alert = null, 3000);
     }
 
   },
@@ -292,6 +307,10 @@ const app = createApp({
 
       const post = this.posts[index];
       if (!post) return;
+
+      const dots = carousel.querySelectorAll('.gp-dot');
+      const activeIdx = e.to;
+      dots.forEach((d, i) => d.classList.toggle('active', i === activeIdx));
 
       if (mapElement._leaflet_map) {
         mapElement._leaflet_map.invalidateSize();
